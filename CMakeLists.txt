@@ -28,6 +28,7 @@ juce_add_plugin(SimpleEQ
         NEEDS_MIDI_INPUT FALSE
         NEEDS_MIDI_OUTPUT FALSE
 )
+juce_generate_juce_header(SimpleEQ)
 
 target_sources(SimpleEQ
         PRIVATE

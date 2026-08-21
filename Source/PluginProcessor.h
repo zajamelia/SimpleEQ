@@ -19,6 +19,8 @@ public:
     //==============================================================================
     SimpleEQAudioProcessor();
     ~SimpleEQAudioProcessor() override;
+    juce::AudioProcessorValueTreeState parameters;
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;

@@ -7,6 +7,8 @@
 */
 
 #include "PluginProcessor.h"
+
+
 #include "PluginEditor.h"
 
 //==============================================================================
@@ -21,7 +23,32 @@ SimpleEQAudioProcessor::SimpleEQAudioProcessor()
                      #endif
                        )
 #endif
+,
+        parameters(*this,nullptr,"Parameters", createParameterLayout())
 {
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout
+SimpleEQAudioProcessor::createParameterLayout() {
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    layout.add(std::make_unique<juce::AudioParameterFloat>("lowFrequency",
+        "Low Frequency",
+        juce::NormalisableRange<float>(20.0f,500.0f),
+        100.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+    "lowGain",
+    "Low Gain",
+    juce::NormalisableRange<float>(-12.0f, 12.0f),
+    0.0f
+));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+    "lowQ",
+    "Low Q",
+    juce::NormalisableRange<float>(0.5f, 10.0f),
+    1.0f
+));
+    return layout;
+
 }
 
 SimpleEQAudioProcessor::~SimpleEQAudioProcessor()
