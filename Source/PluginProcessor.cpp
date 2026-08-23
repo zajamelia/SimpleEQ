@@ -47,6 +47,22 @@ SimpleEQAudioProcessor::createParameterLayout() {
     juce::NormalisableRange<float>(0.5f, 10.0f),
     1.0f
 ));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("midFrequency",
+        "Mid frequency",
+        juce::NormalisableRange<float>(500.f,5000.0f),
+        1000.0f
+));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("midGain",
+        "Mid gain",
+        juce::NormalisableRange<float>(-12.0f, 12.0f),
+        0.f
+));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("midQ",
+        "Mid Q",
+        juce::NormalisableRange<float>(0.5f, 10.0f),
+        1.0f));
+
+
     return layout;
 
 }
