@@ -48,12 +48,12 @@ SimpleEQAudioProcessor::createParameterLayout() {
     1.0f
 ));
     layout.add(std::make_unique<juce::AudioParameterFloat>("midFrequency",
-        "Mid frequency",
+        "Mid Frequency",
         juce::NormalisableRange<float>(500.f,5000.0f),
         1000.0f
 ));
     layout.add(std::make_unique<juce::AudioParameterFloat>("midGain",
-        "Mid gain",
+        "Mid Gain",
         juce::NormalisableRange<float>(-12.0f, 12.0f),
         0.f
 ));
@@ -62,7 +62,20 @@ SimpleEQAudioProcessor::createParameterLayout() {
         juce::NormalisableRange<float>(0.5f, 10.0f),
         1.0f));
 
-
+    layout.add(std::make_unique<juce::AudioParameterFloat>("highFrequency",
+           "High frequency",
+           juce::NormalisableRange<float>(5000.f,20000.0f),
+           10000.0f
+));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("highGain",
+        "High gain",
+        juce::NormalisableRange<float>(-12.0f, 12.0f),
+        0.f
+));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("highQ",
+        "High Q",
+        juce::NormalisableRange<float>(0.5f, 10.0f),
+        1.0f));
     return layout;
 
 }
