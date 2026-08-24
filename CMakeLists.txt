@@ -24,11 +24,18 @@ juce_add_plugin(SimpleEQ
         Standalone
         VST3
 
+        COPY_PLUGIN_AFTER_BUILD TRUE
+
         IS_SYNTH FALSE
         NEEDS_MIDI_INPUT FALSE
         NEEDS_MIDI_OUTPUT FALSE
 )
 juce_generate_juce_header(SimpleEQ)
+
+target_compile_definitions(SimpleEQ
+        PUBLIC
+        JUCE_VST3_CAN_REPLACE_VST2=0
+)
 
 target_sources(SimpleEQ
         PRIVATE

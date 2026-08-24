@@ -13,7 +13,7 @@
 //==============================================================================
 /**
 */
-class SimpleEQAudioProcessor  : public juce::AudioProcessor
+class SimpleEQAudioProcessor  : public juce::AudioProcessor, juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -21,6 +21,7 @@ public:
     ~SimpleEQAudioProcessor() override;
     juce::AudioProcessorValueTreeState parameters;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -56,6 +57,14 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    juce::dsp::ProcessorDuplicator<
+    juce::dsp::IIR::Filter<float>,
+    juce::dsp::IIR::Coefficients<float>
+> lowFilter;
+    std::atomic<bool> lowFilterNeedsUpdate { false };
+    void updateLowFilter();
+
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessor)
 };
