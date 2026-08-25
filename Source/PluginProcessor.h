@@ -60,9 +60,29 @@ private:
     juce::dsp::ProcessorDuplicator<
     juce::dsp::IIR::Filter<float>,
     juce::dsp::IIR::Coefficients<float>
-> lowFilter;
+    > lowFilter;
     std::atomic<bool> lowFilterNeedsUpdate { false };
-    void updateLowFilter();
+
+
+    juce::dsp::ProcessorDuplicator<
+    juce::dsp::IIR::Filter<float>,
+    juce::dsp::IIR::Coefficients<float>
+    > midFilter;
+    std::atomic<bool> midFilterNeedsUpdate { false };
+
+    juce::dsp::ProcessorDuplicator<
+juce::dsp::IIR::Filter<float>,
+juce::dsp::IIR::Coefficients<float>
+> highFilter;
+    std::atomic<bool> highFilterNeedsUpdate { false };
+
+    void updateFilter(
+    juce::dsp::ProcessorDuplicator<
+        juce::dsp::IIR::Filter<float>,
+        juce::dsp::IIR::Coefficients<float>>& filter,
+    const juce::String& frequencyID,
+    const juce::String& gainID,
+    const juce::String& qID);
 
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     //==============================================================================
