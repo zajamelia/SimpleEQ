@@ -57,6 +57,17 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 private:
+    struct SmoothedFilterParameters {
+        juce::SmoothedValue<float> frequency;
+        juce::SmoothedValue<float> gain;
+        juce::SmoothedValue<float> q;
+    };
+
+    SmoothedFilterParameters lowParams;
+    SmoothedFilterParameters midParams;
+    SmoothedFilterParameters highParams;
+
+
     juce::dsp::ProcessorDuplicator<
     juce::dsp::IIR::Filter<float>,
     juce::dsp::IIR::Coefficients<float>
@@ -80,9 +91,9 @@ juce::dsp::IIR::Coefficients<float>
     juce::dsp::ProcessorDuplicator<
         juce::dsp::IIR::Filter<float>,
         juce::dsp::IIR::Coefficients<float>>& filter,
-    const juce::String& frequencyID,
-    const juce::String& gainID,
-    const juce::String& qID);
+    SmoothedFilterParameters& params);
+
+
 
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     //==============================================================================

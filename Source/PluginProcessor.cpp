@@ -26,19 +26,21 @@ SimpleEQAudioProcessor::SimpleEQAudioProcessor()
 ,
         parameters(*this,nullptr,"Parameters", createParameterLayout())
 {
+    //Listens for changes in low band parameters
     parameters.addParameterListener("lowFrequency", this);
     parameters.addParameterListener("lowGain", this);
     parameters.addParameterListener("lowQ", this);
-
+    //Listens for changes in mid band parameters
     parameters.addParameterListener("midFrequency", this);
     parameters.addParameterListener("midGain", this);
     parameters.addParameterListener("midQ", this);
-
+    //Listens for changes in high band parameters
     parameters.addParameterListener("highFrequency", this);
     parameters.addParameterListener("highGain", this);
     parameters.addParameterListener("highQ", this);
 }
 
+//Creates all plugin parameters
 juce::AudioProcessorValueTreeState::ParameterLayout
 SimpleEQAudioProcessor::createParameterLayout() {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
@@ -93,17 +95,16 @@ SimpleEQAudioProcessor::createParameterLayout() {
     return layout;
 }
 
+// Updates filter using its smoothed parameters
 void SimpleEQAudioProcessor::updateFilter(
  juce::dsp::ProcessorDuplicator<
  juce::dsp::IIR::Filter<float>,
  juce::dsp::IIR::Coefficients<float>>& filter,
- const juce::String& frequencyID,
- const juce::String& gainID,
- const juce::String& qID) {
+ SmoothedFilterParameters& params) {
     // Read parameter values
-    const auto frequency = parameters.getRawParameterValue(frequencyID)->load();
-    const auto gain =  parameters.getRawParameterValue(gainID)->load();
-    const auto q = parameters.getRawParameterValue(qID)->load();
+    const auto frequency = params.frequency.getCurrentValue();
+    const auto gain =  params.gain.getCurrentValue();
+    const auto q = params.q.getCurrentValue();
 
     // calculate coefficients
     auto coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
@@ -117,16 +118,23 @@ void SimpleEQAudioProcessor::updateFilter(
 
 }
 
-    void SimpleEQAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
-    {
-       if (parameterID.startsWith("low"))
-           lowFilterNeedsUpdate = true;
-       else if (parameterID.startsWith("mid"))
-           midFilterNeedsUpdate = true;
-    else if (parameterID.startsWith("high"))
-        highFilterNeedsUpdate = true;
-    }
+    void SimpleEQAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue) {
 
+    // Gives changed parameter's smoother its new target value
+    if (parameterID == "lowFrequency") lowParams.frequency.setTargetValue(newValue);
+    else if (parameterID == "lowGain") lowParams.gain.setTargetValue(newValue);
+    else if (parameterID == "lowQ") lowParams.q.setTargetValue(newValue);
+    else if (parameterID == "midFrequency") midParams.frequency.setTargetValue(newValue);
+    else if (parameterID == "midGain") midParams.gain.setTargetValue(newValue);
+    else if (parameterID == "midQ") midParams.q.setTargetValue(newValue);
+    else if (parameterID == "highFrequency") highParams.frequency.setTargetValue(newValue);
+    else if (parameterID == "highGain") highParams.gain.setTargetValue(newValue);
+    else if (parameterID == "highQ") highParams.q.setTargetValue(newValue);
+
+    if (parameterID.startsWith("low")) lowFilterNeedsUpdate = true;
+    else if (parameterID.startsWith("mid")) midFilterNeedsUpdate = true;
+    else if (parameterID.startsWith("high")) highFilterNeedsUpdate = true;
+}
     SimpleEQAudioProcessor::~SimpleEQAudioProcessor()
     {
     }
@@ -205,10 +213,38 @@ void SimpleEQAudioProcessor::updateFilter(
         midFilter.prepare(spec);
         highFilter.prepare(spec);
 
+        // Sets smoothing time for all filters to 20ms
+        lowParams.frequency.reset(sampleRate,0.02);
+        lowParams.gain.reset(sampleRate,0.02);
+        lowParams.q.reset(sampleRate,0.02);
+
+        midParams.frequency.reset(sampleRate,0.02);
+        midParams.gain.reset(sampleRate,0.02);
+        midParams.q.reset(sampleRate,0.02);
+
+        highParams.frequency.reset(sampleRate,0.02);
+        highParams.gain.reset(sampleRate,0.02);
+        highParams.q.reset(sampleRate,0.02);
+
+    // Set smoothers to their starting parameter values
+    lowParams.frequency.setCurrentAndTargetValue(parameters.getRawParameterValue("lowFrequency")->load());
+    lowParams.gain.setCurrentAndTargetValue(parameters.getRawParameterValue("lowGain")->load());
+    lowParams.q.setCurrentAndTargetValue(parameters.getRawParameterValue("lowQ")->load());
+
+    midParams.frequency.setCurrentAndTargetValue(parameters.getRawParameterValue("midFrequency")->load());
+    midParams.gain.setCurrentAndTargetValue(parameters.getRawParameterValue("midGain")->load());
+    midParams.q.setCurrentAndTargetValue(parameters.getRawParameterValue("midQ")->load());
+
+    highParams.frequency.setCurrentAndTargetValue(parameters.getRawParameterValue("highFrequency")->load());
+    highParams.gain.setCurrentAndTargetValue(parameters.getRawParameterValue("highGain")->load());
+    highParams.q.setCurrentAndTargetValue(parameters.getRawParameterValue("highQ")->load());
+
+
+
     // Set filter coefficients
-    updateFilter(lowFilter, "lowFrequency", "lowGain", "lowQ");
-    updateFilter(midFilter, "midFrequency", "midGain", "midQ");
-    updateFilter(highFilter, "highFrequency", "highGain", "highQ");
+    updateFilter(lowFilter, lowParams);
+    updateFilter(midFilter, midParams);
+    updateFilter(highFilter, highParams);
     }
 
     void SimpleEQAudioProcessor::releaseResources() {
@@ -245,6 +281,7 @@ void SimpleEQAudioProcessor::updateFilter(
     void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
     {
         juce::ScopedNoDenormals noDenormals;
+        const auto numSamples = buffer.getNumSamples();  //Gets number of samples in the current audio block
         auto totalNumInputChannels  = getTotalNumInputChannels();
         auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -253,26 +290,69 @@ void SimpleEQAudioProcessor::updateFilter(
 
         juce::dsp::AudioBlock<float> block (buffer); // Give DSP system access to buffer
         juce::dsp::ProcessContextReplacing<float> context (block); // // Replace the original audio with the processed audio
+    const bool anyFilterIsSmoothing = lowParams.frequency.isSmoothing() || lowParams.gain.isSmoothing() || lowParams.q.isSmoothing() ||
+        midParams.frequency.isSmoothing() ||midParams.gain.isSmoothing() ||midParams.q.isSmoothing() ||
+        highParams.frequency.isSmoothing() ||highParams.gain.isSmoothing() || highParams.q.isSmoothing();
 
-        // Update coefficients only if parameters value change
-        if (lowFilterNeedsUpdate)
-        {
-            updateFilter(lowFilter,"lowFrequency","lowGain","lowQ");
-            lowFilterNeedsUpdate = false;
-        }
-    if (midFilterNeedsUpdate)
-    {
-        updateFilter(midFilter,"midFrequency","midGain","midQ");
-        midFilterNeedsUpdate = false;
-    }
-     if (highFilterNeedsUpdate)
-    {
-        updateFilter(highFilter,"highFrequency","highGain","highQ");
-        highFilterNeedsUpdate = false;
-    }
-        lowFilter.process(context); // Process audio through filter
+    // If nothing is changing process the block normally
+    if (!anyFilterIsSmoothing) {
+        lowFilter.process(context);
         midFilter.process(context);
         highFilter.process(context);
+        return;
+    }
+
+    //If something is changing process sample by sample
+      for (int sample = 0; sample < numSamples; ++sample) {
+          const bool lowIsSmoothing =
+    lowParams.frequency.isSmoothing() ||
+    lowParams.gain.isSmoothing() ||
+    lowParams.q.isSmoothing();
+
+          const bool midIsSmoothing =
+              midParams.frequency.isSmoothing() ||
+              midParams.gain.isSmoothing() ||
+              midParams.q.isSmoothing();
+
+          const bool highIsSmoothing =
+              highParams.frequency.isSmoothing() ||
+              highParams.gain.isSmoothing() ||
+              highParams.q.isSmoothing();
+
+          lowParams.frequency.getNextValue();
+          lowParams.gain.getNextValue();
+          lowParams.q.getNextValue();
+
+          midParams.frequency.getNextValue();
+          midParams.gain.getNextValue();
+          midParams.q.getNextValue();
+
+          highParams.frequency.getNextValue();
+          highParams.gain.getNextValue();
+          highParams.q.getNextValue();
+
+          if (lowIsSmoothing)
+          {
+              updateFilter(lowFilter, lowParams);
+          }
+
+          if (midIsSmoothing)
+          {
+              updateFilter(midFilter, midParams);
+          }
+
+          if (highIsSmoothing)
+          {
+              updateFilter(highFilter, highParams);
+          }
+
+          auto singleSampleBlock = block.getSubBlock(sample,1);
+          juce::dsp::ProcessContextReplacing<float> singleSamplecontext (singleSampleBlock);
+
+          lowFilter.process(singleSamplecontext);
+          midFilter.process(singleSamplecontext);
+          highFilter.process(singleSamplecontext);
+      }
     }
 
     //==============================================================================
