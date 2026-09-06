@@ -49,4 +49,10 @@ target_link_libraries(SimpleEQ
         PRIVATE
         juce::juce_audio_utils
         juce::juce_dsp
+        SimpleEQAssets
+)
+
+juce_add_binary_data(SimpleEQAssets
+        SOURCES
+        Assets/AlmendraSC-Regular.ttf
 )

@@ -29,5 +29,8 @@ private:
     // access the processor object that created it.
     SimpleEQAudioProcessor& audioProcessor;
 
+    juce::Slider lowFreqSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowFreqAttachment;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleEQAudioProcessorEditor)
 };

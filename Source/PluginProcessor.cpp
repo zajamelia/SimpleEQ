@@ -134,6 +134,8 @@ void SimpleEQAudioProcessor::updateFilter(
     if (parameterID.startsWith("low")) lowFilterNeedsUpdate = true;
     else if (parameterID.startsWith("mid")) midFilterNeedsUpdate = true;
     else if (parameterID.startsWith("high")) highFilterNeedsUpdate = true;
+
+    
 }
     SimpleEQAudioProcessor::~SimpleEQAudioProcessor()
     {
@@ -363,7 +365,7 @@ void SimpleEQAudioProcessor::updateFilter(
 
     juce::AudioProcessorEditor* SimpleEQAudioProcessor::createEditor()
     {
-        return new juce::GenericAudioProcessorEditor (*this);
+        return new SimpleEQAudioProcessorEditor (*this);
     }
 
     //==============================================================================
