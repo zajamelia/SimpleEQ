@@ -102,7 +102,11 @@ void SimpleEQAudioProcessor::updateFilter(
  juce::dsp::IIR::Coefficients<float>>& filter,
  SmoothedFilterParameters& params) {
     // Read parameter values
-    const auto frequency = params.frequency.getCurrentValue();
+    const auto nyquist = getSampleRate() / 2.0;
+    const auto frequency = juce::jmin(
+        params.frequency.getCurrentValue(),
+        static_cast<float>(nyquist * 0.98)
+    );
     const auto gain =  params.gain.getCurrentValue();
     const auto q = params.q.getCurrentValue();
 
@@ -135,7 +139,7 @@ void SimpleEQAudioProcessor::updateFilter(
     else if (parameterID.startsWith("mid")) midFilterNeedsUpdate = true;
     else if (parameterID.startsWith("high")) highFilterNeedsUpdate = true;
 
-    
+
 }
     SimpleEQAudioProcessor::~SimpleEQAudioProcessor()
     {
@@ -354,6 +358,7 @@ void SimpleEQAudioProcessor::updateFilter(
           lowFilter.process(singleSamplecontext);
           midFilter.process(singleSamplecontext);
           highFilter.process(singleSamplecontext);
+          
       }
     }
 
